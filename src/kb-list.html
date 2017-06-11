@@ -1,0 +1,24 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="kb-fullcalendar-style.html">
+<link rel="import" href="kb-fullcalendar.html">
+
+<dom-module id="kb-list">
+  <template>
+    <style include="kb-fullcalendar-style"> 
+    </style>
+
+    <kb-fullcalendar></kb-fullcalendar>
+  </template>
+
+  <script>
+    // 为一个新的叫做 kb-list 的元素定义类
+    class KbList extends Polymer.Element {
+      static get is() { return 'kb-list'; }
+      constructor() {
+        super();
+      }
+    }
+    // 在浏览器中注册这个新的元素
+    window.customElements.define(KbList.is, KbList);
+  </script>
+</dom-module>

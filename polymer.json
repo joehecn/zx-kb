@@ -1,0 +1,30 @@
+{
+  "entrypoint": "index.html",
+  "shell": "src/kb-app.html",
+  "fragments": [
+    "src/kb-list.html",
+    "src/kb-detail.html",
+    "src/kb-view404.html"
+  ],
+  "sources": [
+    "src/**/*",
+    "images/**/*",
+    "bower.json"
+  ],
+  "extraDependencies": [
+    "manifest.json",
+    "bower_components/webcomponentsjs/*.js"
+  ],
+  "lint": {
+    "rules": ["polymer-2"]
+  },
+  "builds": [{
+    "name": "unbundled",
+    "js": {"minify": true, "compile": true},
+    "css": {"minify": true},
+    "html": {"minify": true},
+    "addServiceWorker": true,
+    "addPushManifest": true,
+    "insertPrefetchLinks": true
+  }]
+}

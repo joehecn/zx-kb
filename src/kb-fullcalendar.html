@@ -1,0 +1,83 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<script src="../bower_components/moment/min/moment.min.js"></script>
+<script src="../bower_components/jquery/dist/jquery.min.js"></script>
+<script src="../bower_components/fullcalendar/dist/fullcalendar.js"></script>
+<script src="../bower_components/fullcalendar/dist/locale/zh-cn.js"></script>
+
+<script>
+  // 为一个新的叫做 kb-fullcalendar 的元素定义类
+  class KbFullcalendar extends Polymer.Element {
+    static get is() { return 'kb-fullcalendar'; }
+    constructor() {
+      super();
+      this._container = document.createElement('div');
+      this.appendChild(this._container);
+    }
+
+    connectedCallback() {
+      jQuery(this._container).fullCalendar({
+        // 一般显示
+        customButtons: {
+          filterSetplace: {
+            text: '全',
+            click: function(event) {
+              console.log(event)
+              // var $btn = jQuery(event.target)
+              // var txt = $btn.text()
+              // var _sps = _self.setplaces
+              // var _len = _sps.length
+              // var _index
+              // var _txt
+
+              // if (_len > 1) {
+              //   _index = _sps.indexOf(txt) + 1
+              //   _txt = _sps[_index] || '全'
+
+              //   $btn.text(_txt)
+
+              //   _self.ref()
+              // }
+            }
+          }
+        },
+        buttonIcons: {
+          today: 'down-triangle'
+        },
+        header: {
+          left:   '',
+          center: 'prev,today,next',
+          right:  'agendaDay,listDay,filterSetplace'
+        },
+        height: function () {
+          return document.body.clientHeight // - 16
+        },                // 整个日历（包括标题）高度
+
+        // 视图
+        defaultView: 'agendaDay',
+
+        views: {
+          agendaDay: {
+            // 日程选项
+            // allDaySlot 默认: true        // “全天”插槽显示在日历顶部
+            allDayText: '总',
+            slotDuration: '00:15:00',      // 显示时隙的频率
+            slotLabelFormat: 'H',          // 时间轴上的时间文本
+            slotLabelInterval: '00:60:00', // 显示时间轴的文本的频率
+            minTime: '00:00:00',           // 显示的开始时间
+            maxTime: '26:00:00',           // 显示的结束时间
+            slotEventOverlap: false,       // 事件是否应在视觉上重叠
+            nowIndicator: true,            // 是否显示指示当前时间的标记
+            columnFormat: 'YYYY-MM-DD dddd'
+          },
+          listDay: {
+            // 列表选项
+            listDayFormat: 'YYYY-MM-DD dddd',
+            noEventsMessage: '让我找半天。。。没找到'
+          }
+        }
+      });
+    }
+  }
+  // 在浏览器中注册这个新的元素
+  window.customElements.define(KbFullcalendar.is, KbFullcalendar);
+</script>
