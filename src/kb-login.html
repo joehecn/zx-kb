@@ -1,0 +1,129 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/mixins/gesture-event-listeners.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+
+<link rel="import" href="shop-form-styles.html">
+<link rel="import" href="shop-input.html">
+<link rel="import" href="shop-button.html">
+
+<script src="../bower_components/buffer/buffer.min.js"></script>
+<script src="../bower_components/axios/dist/axios.min.js"></script>
+
+<dom-module id="kb-login">
+  <template>
+    <style include="shop-form-styles shop-input shop-button">
+      shop-input {
+        font-size: 16px;
+      }
+
+      .grid {
+        margin-top: 40px;
+        @apply --layout-horizontal;
+      }
+
+      .grid > section {
+        @apply --layout-flex;
+      }
+
+      .row {
+        @apply --layout-horizontal;
+        @apply --layout-end;
+      }
+
+      .row > .flex,
+      .input-row > * {
+        @apply --layout-flex;
+      }
+
+      .input-row > *:not(:first-child) {
+        margin-left: 8px;
+      }
+
+      #submitBox {
+        margin-top: 10px;
+      }
+
+      @media (min-width: 768px) {
+
+        .grid {
+          width: 50%;
+        }
+      }
+    </style>
+
+    <!-- shop-form-styles:main-frame -->
+    <div class="main-frame">
+      <iron-form on-iron-form-submit="_submit">
+        <form>
+          <div class="grid">
+            <section>
+              <div class="row input-row">
+                <shop-input>
+                  <input id="userName"
+                    name="userName"
+                    pattern="[A-Za-z0-9_]{2,15}"
+                    placeholder="用户名" required
+                    aria-labelledby="userNameLabel loginInfo"
+                    autofocus>
+                  <shop-md-decorator error-message="用户名不正确" aria-hidden="true">
+                    <label id="userNameLabel">用户名</label>
+                    <shop-underline></shop-underline>
+                  </shop-md-decorator>
+                </shop-input>
+              </div>
+
+              <div class="row input-row">
+                <shop-input>
+                  <input id="password"
+                    type="password"
+                    name="password"
+                    pattern=".{6,20}"
+                    placeholder="密码" required
+                    aria-labelledby="passwordLabel loginInfo">
+                  <shop-md-decorator error-message="密码错误" aria-hidden="true">
+                    <label id="passwordLabel">密码</label>
+                    <shop-underline></shop-underline>
+                  </shop-md-decorator>
+                </shop-input>
+              </div>
+
+              <shop-button responsive id="submitBox">
+                <input type="submit" value="登 录">
+              </shop-button>
+            </section>
+          </div>
+        </form>
+      </iron-form>
+    </div>
+  </template>
+  
+  <script>
+    // 为一个新的叫做 kb-login 的元素定义类
+    class KbLogin extends Polymer.GestureEventListeners(Polymer.Element) {
+      static get is() { return 'kb-login'; }
+
+      _submit(event) {
+        event.preventDefault()
+
+        // base64 编码
+        const userObj = event.detail;
+        const userStr = JSON.stringify(userObj);
+        const user = buffer.Buffer(userStr).toString('base64');
+
+        axios({
+          method: 'post',
+          url: 'http://localhost:3000/api/kb/users/login',
+          data: { user },
+        }).then((response) => {
+          this.dispatchEvent(new CustomEvent('set-auth', {detail: response.data}));
+        }).catch((err) => {
+          console.log(err.response.data);
+        });
+      }
+    }
+    // 在浏览器中注册这个新的元素
+    window.customElements.define(KbLogin.is, KbLogin);
+  </script>
+</dom-module>
+

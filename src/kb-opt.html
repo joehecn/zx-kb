@@ -1,0 +1,135 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+
+<link rel="import" href="kb-icons.html">
+
+<link rel="import" href="shop-form-styles.html">
+<link rel="import" href="shop-select.html">
+
+<dom-module id="kb-opt">
+  <template>
+    <style include="shop-form-styles shop-select">
+      .back-warp {
+        position: fixed;
+        right: 0;
+      }
+
+      shop-select {
+        font-size: 16px;
+        margin-bottom: 20px;
+      }
+
+      .grid {
+        margin-top: 40px;
+        @apply --layout-horizontal;
+      }
+
+      .grid > section {
+        @apply --layout-flex;
+      }
+
+      .grid > section:not(:first-child) {
+        margin-left: 40px;
+      }
+
+      .column {
+        @apply --layout-vertical;
+      }
+
+      .shop-select-label {
+        line-height: 20px;
+      }
+    </style>
+
+    <div class="back-warp">
+      <paper-icon-button
+        icon="flight"
+        on-tap="_backList"
+        aria-label="Categories">
+      </paper-icon-button>
+      
+      <paper-icon-button
+        icon="mail"
+        on-tap="_backList"
+        aria-label="Categories">
+      </paper-icon-button>
+    </div>
+
+    <!-- shop-form-styles:main-frame -->
+    <div class="main-frame">
+      <div class="grid">
+        <section>
+          <div class="column">
+            <label id="shipCountryLabel" class="shop-select-label">现场负责人</label>
+            <shop-select>
+              <select id="shipCountry" name="shipCountry" required
+                  aria-labelledby="shipCountryLabel shipAddressHeading">
+                <option value="何苗" selected>何苗</option>
+                <option value="CA">Canada</option>
+              </select>
+              <shop-md-decorator aria-hidden="true">
+                <shop-underline></shop-underline>
+              </shop-md-decorator>
+            </shop-select>
+
+            <label id="shipCountryLabel" class="shop-select-label">集合地点</label>
+            <shop-select>
+              <select id="shipCountry" name="shipCountry" required
+                  aria-labelledby="shipCountryLabel shipAddressHeading">
+                <option value="11号" selected>11号</option>
+                <option value="CA">Canada</option>
+              </select>
+              <shop-md-decorator aria-hidden="true">
+                <shop-underline></shop-underline>
+              </shop-md-decorator>
+            </shop-select>
+          </div>
+        </section>
+
+        <section>
+          <div class="column">
+            <label id="shipCountryLabel" class="shop-select-label">登机牌</label>
+            <shop-select>
+              <select id="shipCountry" name="shipCountry" required
+                  aria-labelledby="shipCountryLabel shipAddressHeading">
+                <option value="已办理" selected>已办理</option>
+                <option value="CA">Canada</option>
+              </select>
+              <shop-md-decorator aria-hidden="true">
+                <shop-underline></shop-underline>
+              </shop-md-decorator>
+            </shop-select>
+
+            <label id="shipCountryLabel" class="shop-select-label">航班</label>
+            <shop-select>
+              <select id="shipCountry" name="shipCountry" required
+                  aria-labelledby="shipCountryLabel shipAddressHeading">
+                <option value="计划" selected>计划</option>
+                <option value="CA">Canada</option>
+              </select>
+              <shop-md-decorator aria-hidden="true">
+                <shop-underline></shop-underline>
+              </shop-md-decorator>
+            </shop-select>
+          </div>
+        </section>
+      </div>
+
+      <div>航班记录</div>
+      <div>服务备注</div>
+      <div>服务状态</div>
+      <paper-toggle-button>未完成</paper-toggle-button>
+    </div>
+  </template>
+
+  <script>
+    // 为一个新的叫做 kb-opt 的元素定义类
+    class KbOpt extends Polymer.Element {
+      static get is() { return 'kb-opt'; }
+    }
+    // 在浏览器中注册这个新的元素
+    window.customElements.define(KbOpt.is, KbOpt);
+  </script>
+</dom-module>

@@ -1,0 +1,140 @@
+<script src="../bower_components/socket.io-client/dist/socket.io.js"></script>
+
+<script>
+  KbUtilBehavior = (function() {
+    'use strict';
+
+    var Sio = (function() {
+      var _sio = null;
+
+      var _makeSio = function() {
+        const socket = io.connect('ws://localhost:3000/nspkb', {
+          query: `token=${JSON.parse(window.localStorage.auth).token}`,
+        });
+        return {
+          emit: function(eventName, data, callback) {
+            socket.emit(eventName, data, callback);
+          },
+          on: function(eventName, callback) {
+            socket.on(eventName, function(results) {
+              callback(results);
+            });
+          },
+          disconnect: function() {
+            socket.disconnect();
+          },
+        };
+      };
+
+      return {
+        getSio: function() {
+          if (!_sio) {
+            _sio = _makeSio();
+          }
+
+          return {emit: _sio.emit, on: _sio.on};
+        },
+
+        clearSio: function() {
+          _sio.disconnect();
+          _sio = null;
+        },
+      };
+    })();
+
+    var KbUtilBehavior = {
+      getSio: Sio.getSio,
+
+      clearSio: Sio.clearSio,
+
+      // 向上查找 Polymer 节点
+      findAncestorByElement: function(element, fn) {
+        while (element && fn.call(this, element)) {
+          element = element.parentElement;
+        }
+
+        return element;
+      },
+
+      covertShortDate: function(d) {
+        if (d) {
+          return moment(d).format('MM-DD');
+        } else {
+          return '';
+        }
+      },
+
+      covertDate: function(d) {
+        if (d) {
+          return moment(d).format('YYYY-MM-DD');
+        } else {
+          return '';
+        }
+      },
+
+      covertTime: function(t) {
+        if (t) {
+          return moment(t).format('HH:mm');
+        } else {
+          return '';
+        }
+      },
+
+      computeFlight: function(f) {
+        return f.flightStartCity + '-' + f.flightEndCity + ' ' +
+          this.covertTime(f.flightStartTime) +
+          '-' + this.covertTime(f.flightEndTime);
+      },
+
+      computeflightTitle: function(f) {
+        return this.covertShortDate(f.flightDate) + ' ' +
+          f.flightNum + ' ' + this.computeFlight(f);
+      },
+
+      getSmNum: function(item, userobj) {
+        if (item && item.flight && userobj && userobj.CITY) {
+        var city = userobj.CITY;
+          var smDate = moment(item.flight.flightDate).format('MMDD');
+          var smType = item.flight.flightStartCity === city ? '送' : '接';
+          var smTime = (item.flight.flightStartCity === city
+            ? moment(item.flight.flightStartTime).format('HHmm')
+            : moment(item.flight.flightEndTime).format('HHmm'));
+
+          return smDate + smTime +
+            item.flight.flightNum +
+            item.operator.substr(0, item.operator.length - 11) +
+            item.smRealNumber + '人' +
+            (item.smType2 === 1 ? '内' : '外') + smType;
+        } else {
+          return '';
+        }
+      },
+
+      getDriver: function(item, userobj) {
+        if (item && item.sm && item.sm.flight && userobj && userobj.CITY) {
+          var city = userobj.CITY;
+          if (item.sm.flight.flightStartCity === city) {
+            return item.team.sendDriver;
+          } else {
+            return item.team.meetDriver;
+          }
+        } else {
+          return '';
+        }
+      },
+
+      getGuide: function(item, userobj) {
+        if (item && item.sm && item.sm.flight && userobj && userobj.CITY) {
+          var city = userobj.CITY;
+          if (item.sm.flight.flightStartCity === city) {
+            return item.team.sendDestinationFlag + ' ' + item.team.guide;
+          }
+        }
+  
+        return '';
+      },
+    };
+
+    return KbUtilBehavior;
+  })();
+</script>

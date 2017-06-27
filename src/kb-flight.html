@@ -1,0 +1,24 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+
+<dom-module id="kb-flight">
+  <template>
+    <style>
+    
+    </style>
+
+    flight
+  </template>
+
+  <script>
+    // 为一个新的叫做 kb-flight 的元素定义类
+    class KbFlight extends Polymer.Element {
+      static get is() { return 'kb-flight'; }
+      // constructor() {
+      //   super();
+      //   this.textContent = 'kb-flight';
+      // }
+    }
+    // 在浏览器中注册这个新的元素
+    window.customElements.define(KbFlight.is, KbFlight);
+  </script>
+</dom-module>

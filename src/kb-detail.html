@@ -1,14 +1,96 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 
-<script>
-  // 为一个新的叫做 kb-detail 的元素定义类
-  class KbDetail extends Polymer.Element {
-    static get is() { return 'kb-detail'; }
-    constructor() {
-      super();
-      this.textContent = 'kb-detail';
+<link rel="import" href="kb-icons.html">
+
+<link rel="lazy-import" href="kb-post.html">
+<link rel="lazy-import" href="kb-sm.html">
+<link rel="lazy-import" href="kb-flight.html">
+<link rel="lazy-import" href="kb-history.html">
+
+<dom-module id="kb-detail">
+  <template>
+    <style>
+      .back-warp {
+        position: fixed;
+      }
+
+      footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-color: white;
+      }
+      paper-tabs {
+        --paper-tabs-selection-bar-color: var(--app-accent-color);
+      }
+    </style>
+
+    <div class="back-warp">
+      <paper-icon-button
+        icon="arrow-back"
+        on-tap="_backList"
+        aria-label="Categories">
+      </paper-icon-button>
+    </div>
+
+    <iron-pages
+        selected="[[selectedtab]]"
+        attr-for-selected="name">
+
+      <kb-post name="post"></kb-post>
+      <kb-sm name="sm"></kb-sm>
+      <kb-flight name="flight"></kb-flight>
+      <kb-history name="history"></kb-history>
+    </iron-pages>
+
+    <footer>
+      <paper-tabs
+          selected="{{selectedtab}}"
+          attr-for-selected="name"
+          align-bottom>
+
+        <paper-tab name="post">操作</paper-tab>
+        <paper-tab name="sm">名单</paper-tab>
+        <paper-tab name="flight">航班</paper-tab>
+        <paper-tab name="history">记录</paper-tab>
+      </paper-tabs>
+    </footer>
+  </template>
+
+  <script>
+    // 为一个新的叫做 kb-detail 的元素定义类
+    class KbDetail extends Polymer.Element {
+      static get is() { return 'kb-detail'; }
+
+      static get properties() {
+        return {
+          selectedtab: {
+            type: String,
+            value: 'post',
+            observer: '_selectedtabChanged',
+          },
+        };
+      }
+
+      _backList() {
+        this.dispatchEvent(new CustomEvent('back-list'))
+      }
+
+      _selectedtabChanged(newValue) {
+        const resolvedPageUrl = this.resolveUrl('kb-' + newValue + '.html');
+        Polymer.importHref(
+          resolvedPageUrl,
+          null,
+          null,
+          true);
+      }
     }
-  }
-  // 在浏览器中注册这个新的元素
-  window.customElements.define(KbDetail.is, KbDetail);
-</script>
+    // 在浏览器中注册这个新的元素
+    window.customElements.define(KbDetail.is, KbDetail);
+  </script>
+</dom-module>

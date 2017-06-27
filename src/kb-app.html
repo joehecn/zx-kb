@@ -1,9 +1,16 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 
+<link rel="import"
+  href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 <link rel="import" href="../bower_components/app-route/app-location.html">
 <link rel="import" href="../bower_components/app-route/app-route.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
 
+<script src="../bower_components/moment/min/moment.min.js"></script>
+
+<link rel="lazy-import" href="kb-login.html">
 <link rel="lazy-import" href="kb-list.html">
 <link rel="lazy-import" href="kb-detail.html">
 <link rel="lazy-import" href="kb-view404.html">
@@ -14,31 +21,75 @@
       :host {
         display: block;
         position: relative;
+
         margin: 0;
         padding: 0;
 
         --app-success-color: #5cb85c;
         --app-danger-color: #d9534f;
+
+        min-height: 100vh;
+
+        --app-primary-color: #202020;
+        --app-secondary-color: #757575;
+        /* --paper-blue-a700 */
+        --app-accent-color: #2962ff;
+        --paper-button-ink-color: var(--app-accent-color);
+        --paper-icon-button-ink-color: var(--app-accent-color);
+        --paper-spinner-color: var(--app-accent-color);
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        color: var(--app-primary-color);
       }
     </style>
+
+    <app-localstorage-document key="auth"
+      data="{{auth}}">
+    </app-localstorage-document>
 
     <app-location route="{{route}}"></app-location>
     <app-route
       route="{{route}}"
-      pattern="[[rootPattern]]:page"
+      pattern="/:page"
       data="{{routeData}}">
     </app-route>
 
     <iron-pages
-      selected="[[page]]"
-      attr-for-selected="name"
-      fallback-selection="view404"
-      role="main">
+        selected="[[page]]"
+        attr-for-selected="name"
+        fallback-selection="view404"
+        role="main">
 
-      <kb-list name="list"></kb-list>
-      <kb-detail name="detail"></kb-detail>
+      <kb-login
+        name="login"
+        on-set-auth="onSetAuth">
+      </kb-login>
+      <kb-list
+        name="list"
+        auth="[[auth]]"
+        gotoday="[[gotoday]]"
+        setplaces="[[setplaces]]"
+        on-kb-fullcalendar-day-changed="onKbFullcalendarDayChanged"
+        on-kb-fullcalendar-event-click="onKbFullcalendarEventClick"
+        on-logout="onLogout">
+      </kb-list>
+      <kb-detail
+        name="detail"
+        on-back-list="onBackList">
+      </kb-detail>
       <kb-view404 name="view404"></kb-view404>
     </iron-pages>
+
+    <paper-dialog
+      id="dialog"
+      modal
+      on-iron-overlay-closed="onDialogClosed"
+    >
+      <h2>确定要退出看板吗？</h2>
+      <div class="buttons">
+        <paper-button dialog-dismiss>取消</paper-button>
+        <paper-button dialog-confirm autofocus>确定退出</paper-button>
+      </div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -53,9 +104,13 @@
             reflectToAttribute: true, // 关联 iron-pages
             observer: '_pageChanged',
           },
-          rootPattern: String,
+          // rootPattern: String,
           routeData: Object,
           subroute: String,
+          setplaces: {
+            type: Array,
+            value: []
+          }
         };
       }
 
@@ -70,24 +125,74 @@
 
         // Get root pattern for app-route, for more info about `rootPath` see:
         // https://www.polymer-project.org/2.0/docs/upgrade#urls-in-templates
-        this.rootPattern = (new URL(this.rootPath)).pathname;
+        // this.rootPattern = (new URL(this.rootPath)).pathname;
+      }
 
+      ready() {
+        super.ready();
+
+        // Custom elements polyfill safe way to indicate an element has been upgraded.
         this.removeAttribute('unresolved');
+
+        // listen for online/offline
+        Polymer.RenderStatus.afterNextRender(this, () => {
+          window.addEventListener('online', e => this._notifyNetworkStatus(e));
+          window.addEventListener('offline', e => this._notifyNetworkStatus(e));
+        });
       }
 
       _routePageChanged(page) {
-        // Polymer 2.0 will call with `undefined` on initialization.
-        // Ignore until we are properly called with a string.
-        if (page === undefined) {
-          return;
+        // 权限控制 判断是否跳转到登录页面
+        if (page !== 'login') {
+          if (window.localStorage.auth &&
+              JSON.parse(window.localStorage.auth).token) {
+            if (!page) {
+              this.set(
+                'route.path',
+                ['/list', moment().format('YYYY-MM-DD')].join('/')
+              );
+              return;
+            } else if (page === 'list') {
+              // 检查日期格式是否正确
+              let dateStr = this.route.path.substr(6, 10);
+              let checkedDate = this._checkDate(dateStr);
+              if (!checkedDate) {
+                this.set(
+                  'route.path',
+                  ['/list', moment().format('YYYY-MM-DD')].join('/')
+                );
+                return;
+              } else {
+                this.set('gotoday', dateStr);
+              }
+            }
+          } else {
+            this.set('route.path', '/login');
+            return;
+          }
         }
 
-        // If no page was found in the route data, page will be an empty string.
-        // Deault to 'list' in that case.
-        this.page = page || 'list';
+        this.page = page;
+      }
+
+      _setSetplaces() {
+        var CITY = JSON.parse(window.localStorage.auth).city
+        switch (CITY) {
+          case '深圳':
+            return ['6', '2', '0']
+          case '广州':
+            return ['2', '13']
+          default:
+            return ['7', '11']
+        }
       }
 
       _pageChanged(page) {
+        // 判断 setplaces
+        if (this.setplaces.length === 0) {
+          this.setplaces = this._setSetplaces()
+        }
+
         // Load page import on demand. Show 404 page if fails
         const resolvedPageUrl = this.resolveUrl('kb-' + page + '.html');
         Polymer.importHref(
@@ -99,6 +204,64 @@
 
       _showPage404() {
         this.page = 'view404';
+      }
+
+      _checkDate(val) {
+        let dateRe = /^(\d{4})\-(\d{2})\-(\d{2})$/;
+
+        // 先看格式是不是正确
+        if (!dateRe.test(val)) {
+          return false;
+        }
+
+        let dataY = new Date(val).getFullYear();
+        let n = new Date();
+        let y = n.getFullYear();
+
+        if (dataY < 1900 || dataY > y) {
+          return false;
+        }
+
+        if ((new Date(val).getDate()) === Number(val.substring(val.length - 2))) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      onSetAuth(event) {
+        this.auth = event.detail;
+        this.set('route.path', '/')
+      }
+
+      onKbFullcalendarDayChanged(event) {
+        this.set('route.path', ['/list', event.detail].join('/'));
+      }
+
+      onKbFullcalendarEventClick(event) {
+        console.log(event)
+
+        this.set('route.path', '/detail')
+      }
+
+      onLogout() {
+        this.$.dialog.open()
+      }
+
+      onDialogClosed(event) {
+        if (event.detail.confirmed) {
+          // this.key = '';
+          // this.gotodayobj = {};
+          // this.userobj = {};
+          // this.detail = {};
+          // this.sm = {};
+          // 跳转到登录页面
+          this.set('route.path', '/login')
+        }
+      }
+
+      onBackList() {
+        this.set('route.path', '/')
       }
     }
     // 在浏览器中注册这个新的元素

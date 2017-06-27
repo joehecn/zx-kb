@@ -1,55 +1,71 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+
+<link rel="import" href="kb-util-behavior.html">
+
 <script src="../bower_components/moment/min/moment.min.js"></script>
 <script src="../bower_components/jquery/dist/jquery.min.js"></script>
-<script src="../bower_components/fullcalendar/dist/fullcalendar.js"></script>
+<script src="../bower_components/fastclick/lib/fastclick.js"></script>
+<script src="../bower_components/fullcalendar/dist/fullcalendar.min.js"></script>
 <script src="../bower_components/fullcalendar/dist/locale/zh-cn.js"></script>
 
 <script>
   // 为一个新的叫做 kb-fullcalendar 的元素定义类
-  class KbFullcalendar extends Polymer.Element {
+  class KbFullcalendar extends
+      Polymer.mixinBehaviors([KbUtilBehavior], Polymer.Element) {
     static get is() { return 'kb-fullcalendar'; }
+    
+    static get properties() {
+      return {
+        // 过滤门的按钮上的文字
+        text: {
+          type: String,
+          value: '全'
+        }
+      };
+    }
+
     constructor() {
       super();
+      this.sio = this.getSio();
       this._container = document.createElement('div');
       this.appendChild(this._container);
     }
 
     connectedCallback() {
-      jQuery(this._container).fullCalendar({
+      const _self = this;
+      FastClick.attach(document.body);
+      jQuery(_self._container).fullCalendar({
         // 一般显示
         customButtons: {
           filterSetplace: {
             text: '全',
-            click: function(event) {
-              console.log(event)
-              // var $btn = jQuery(event.target)
-              // var txt = $btn.text()
-              // var _sps = _self.setplaces
-              // var _len = _sps.length
-              // var _index
-              // var _txt
+            click(event) {
+              const $btn = jQuery(event.target);
+              const txt = $btn.text();
+              const _sps = _self.setplaces;
 
-              // if (_len > 1) {
-              //   _index = _sps.indexOf(txt) + 1
-              //   _txt = _sps[_index] || '全'
+              if (_sps.length > 1) {
+                let _index = _sps.indexOf(txt) + 1;
+                let _txt = _sps[_index] || '全';
 
-              //   $btn.text(_txt)
+                $btn.text(_txt);
+                _self.text = _txt;
 
-              //   _self.ref()
-              // }
-            }
-          }
+                _self.ref();
+              }
+            },
+          },
         },
         buttonIcons: {
-          today: 'down-triangle'
+          today: 'down-triangle',
         },
         header: {
-          left:   '',
+          left: '',
           center: 'prev,today,next',
-          right:  'agendaDay,listDay,filterSetplace'
+          right: 'agendaDay,listDay,filterSetplace',
         },
-        height: function () {
-          return document.body.clientHeight // - 16
+        height: function() {
+          return document.body.clientHeight; // - 16
         },                // 整个日历（包括标题）高度
 
         // 视图
@@ -67,15 +83,492 @@
             maxTime: '26:00:00',           // 显示的结束时间
             slotEventOverlap: false,       // 事件是否应在视觉上重叠
             nowIndicator: true,            // 是否显示指示当前时间的标记
-            columnFormat: 'YYYY-MM-DD dddd'
+            columnFormat: 'YYYY-MM-DD dddd',
           },
           listDay: {
             // 列表选项
             listDayFormat: 'YYYY-MM-DD dddd',
-            noEventsMessage: '让我找半天。。。没找到'
+            noEventsMessage: '让我找半天。。。没找到',
+          },
+        },
+
+        // 当前日期
+        defaultDate: _self.gotoday,       // 第一次加载默认日期
+
+        eventRender(event, element, view) {
+          var event_html
+
+          if (view.name === 'agendaDay') {
+            var djpStateClass = 'default'
+            var flyingStatusClass = 'default'         // 航班动态
+            var smAgencyFundStateClass = 'danger'
+            var smPaymentStateClass = 'danger'
+            var smSetPlaceClass = 'info'
+            var news_html = ''
+            var smSetPlaceStyle = ''
+            var phoneMsgStatus_html = ''
+            var gai_span_html = ''
+            var flightState_html = ''
+            var flightNum
+
+            if (event.allDay){
+              return
+            }
+
+            if (event.isHasNews){
+              news_html = '<span class="glyphicon glyphicon-volume-up" aria-hidden="true" style="color: red;"></span><br>'
+            }
+            if (event.phoneMsgStatus === '0') {
+              phoneMsgStatus_html = '<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">集合短信</span><br>'
+            } else if (event.phoneMsgStatus === '1') {
+              phoneMsgStatus_html = '<span class="label label-success" style="padding-top: 0; padding-bottom: 0;">集合短信</span><br>'
+            } else if (event.phoneMsgStatus === '2') {
+              phoneMsgStatus_html = '<span class="label label-info" style="padding-top: 0; padding-bottom: 0;">集合短信</span><br>'
+            }
+
+            if (event.flight_gai) {
+              gai_span_html = '<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">改签</span><br>'
+              //flightNum = event.flight_gai.flightNum;
+            }
+
+            flightNum = event.flight.flightNum;
+
+            switch(event.flightState){
+              case '计划':
+                flightState_html = '<span class="label label-default" style="padding-top: 0; padding-bottom: 0;">计划</span><br>'
+                break;
+              case '延误':
+                flightState_html = '<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">延误</span><br>'
+                //flightStateClass = 'warning';
+                break;
+              case '取消':
+                flightState_html = '<span class="label label-danger" style="padding-top: 0; padding-bottom: 0;">取消</span><br>'
+                //flightStateClass = 'danger';
+                break;
+              case '起飞':
+                //flightStateClass = 'success';
+                flightState_html = '<span class="label label-success" style="padding-top: 0; padding-bottom: 0;">起飞</span><br>'
+                break;
+              default:
+            }
+
+            // 航班动态
+            // ["计划", "在途", "到达", "延误", "未知", "取消", "起飞", "经停", "折返", "备降", "暂无"]
+            // info    计划
+            // warning 延误 未知 折返 备降 暂无
+            // danger  取消
+            // success 起飞 在途 到达 经停
+            // -------------------------------------
+            // info    计划
+            // warning 延误
+            // danger  取消
+            // success 到达
+            // primary 起飞 在途
+            // default 经停 未知 折返 备降 暂无
+            if(event.flyingStatusClass){
+              flyingStatusClass = event.flyingStatusClass
+            }
+
+            switch(event.djpState){
+              case '已办理':
+                djpStateClass = 'danger'
+                break
+              case '部分已领':
+                djpStateClass = 'warning'
+                break
+              case '全部OK':
+                djpStateClass = 'success'
+                break
+            }
+
+
+            if(event.smAgencyFundState === '已收') {
+              smAgencyFundStateClass = 'success'
+            }
+
+            if(event.smPaymentState === '已付') {
+              smPaymentStateClass = 'success'
+            }
+
+            if(event.smSetPlace === 'n') {
+              smSetPlaceClass = 'danger'
+            }
+
+            switch(event.smSetPlace){
+              case '6':
+                smSetPlaceStyle = ' style="color: #000;"'
+                break;
+              case '0':
+                smSetPlaceClass = 'success'
+                break;
+              case 'n':
+                smSetPlaceClass = 'danger'
+                break;
+            }
+
+            event_html = String()
+              // 未读消息
+              + news_html
+              + '<span' + smSetPlaceStyle + ' class="label label-' + smSetPlaceClass + '">'
+                + event.smSetPlace
+              + '</span>'
+              + '<span>'
+                + event.start.format('HH:mm')
+              + '</span>'
+              + '<br>'
+              + phoneMsgStatus_html
+              + gai_span_html // 改签
+              + flightState_html // 航班状态
+              // 航班动态
+              + '<span class="label label-' + flyingStatusClass + '" style="padding-top: 0; padding-bottom: 0;">'
+                + flightNum
+              + '</span><br>'
+              + '<span class="label label-' + djpStateClass + '" style="padding-top: 0; padding-bottom: 0;">'
+                + '登机牌'
+              + '</span><br>'
+              + event.smAgencyFund_html.replace('warning', smAgencyFundStateClass)
+              + event.smPayment_html.replace('warning', smPaymentStateClass)
+              + event.city_html
+              + '<span>'
+                //+ event.operator.substr(0, event.operator.length - 11)
+                + event.operator.substr(0, 4)
+              + '</span><br>'
+              + '<span>'
+                + event.smRealNumber
+                + '人'
+                + (event.smType2 === 1 ? '内' : '外')
+                + (event.smType1 === 1 ? '送' : '接')
+              + '</span></br>'
+              + '<span>'
+                + event.serverMan
+              + '</span>';
+          } else {
+            if (event.allDay){
+              return
+            }
+
+            event_html = '<td class="fc-list-item-time fc-widget-content">' +
+              event.start.format('HH:mm') + '</td>' +
+              '<td class="fc-list-item-marker fc-widget-content" style="background-color: ' +
+                event.backgroundColor + ';"><span class="fc-event-dot"></span></td>' +
+              '<td class="fc-list-item-title fc-widget-content" style="color: #fff; background-color: ' +
+                event.backgroundColor + ';">' +
+                '<a>' +
+                  event.smSetPlace + '号门 ' +
+                  // event.start.format('HH:mm') + ' ' +
+                  event.flight.flightNum + ' ' +
+                  event.city_html +
+                  event.smRealNumber + '人' +
+                  (event.smType2 === 1 ? '内' : '外') +
+                  (event.smType1 === 1 ? '送 ' : '接<br>') +
+                  event.operator +
+                '</a>' +
+              '</td>'
           }
+          
+          element.html(event_html)
+        },
+        
+        events(start, end, timezone, callback) {
+          const _day = moment(start).format('YYYY-MM-DD');
+          if (_self.gotoday !== _day) {
+            _self.dispatchEvent(new CustomEvent('kb-fullcalendar-day-changed', {
+              bubbles: true,
+              composed: true,
+              detail: _day,
+            }));
+          }
+
+          _self.sio.emit('cemit-getSms', {
+            gotoday: _day,
+          }, (result) => {
+            if (result.success === 1) {
+              let _events = _self._getDataObj(result.data).events;
+              callback(_self._filterEvents(_events));
+            }
+          });
+        },
+
+        eventClick(calEvent, jsEvent, view) {
+          if(calEvent.allDay){
+            return false
+          }
+
+          _self.dispatchEvent(new CustomEvent('kb-fullcalendar-event-click', {
+            bubbles: true,
+            composed: true,
+            detail: calEvent,
+          }));
         }
       });
+    }
+
+    _computeSmStatus(smStatus) {
+      if (smStatus > 2) {
+        return '完成'
+      } else {
+        return '未完成'
+      }
+    }
+
+    _getSetTime(flightTime, miniter) {
+      return moment(flightTime).subtract(miniter, 'm').format('HH:mm')
+    }
+
+    _filterEvents(events) {
+      const txt = this.text
+
+      if (txt === '全') {
+        return this._addTongji(events)
+      } else {
+        const _events = events.filter(function (item) {
+          return item.smSetPlace === txt;
+        });
+
+        return this._addTongji(_events)
+      }
+    }
+
+    _addTongji(events) {
+      var team_sum = 0
+      var send_sum = 0
+      var meet_sum = 0
+      var smRealNumber_sum = 0
+      var serverStateOk_sum = 0
+      var insurance_sum = 0
+      var isPush = true
+      var len = events.length
+      var i
+      var item
+      var totalObj
+      var endObj
+
+      for (i = 0; i < len; i++) {
+        item = events[i]
+        if(item.allDay) {
+          isPush = false
+          if(item.itemType === 'total') {
+            totalObj = item
+          } else {
+            endObj = item
+          }
+        } else {
+          if(moment(this.gotoday).isSame(item.flight.flightDate, 'day')) {
+            team_sum ++
+            if(item.smType1 === 1){
+              insurance_sum += item.insurance
+              send_sum ++
+            } else {
+              meet_sum ++
+            }
+            smRealNumber_sum += item.smRealNumber
+
+            if(item.serverState === '完成') {
+              serverStateOk_sum ++
+            }
+          }
+        }
+      }
+
+      if(isPush) {
+        events.push({
+          title: '共计: ' + team_sum + '团 ' + send_sum + '送 ' + meet_sum + '接 ' + smRealNumber_sum + '人 ',
+          start: this.gotoday,
+          allDay: true,
+          itemType: 'total'
+        })
+        events.push({
+          title: '完成: ' + serverStateOk_sum + '团 ' + insurance_sum + '份保险',
+          start: this.gotoday,
+          allDay: true
+        })
+      } else {
+        totalObj.title = '共计: ' + team_sum + '团 ' + send_sum + '送 ' + meet_sum + '接 ' + smRealNumber_sum + '人'
+        endObj.title = '完成: ' + serverStateOk_sum + '团 ' + insurance_sum + '份保险'
+      }
+
+      return events
+    }
+
+    _getDataObj(results) {
+      var _CITY = JSON.parse(window.localStorage.auth).city
+      var _events = []
+      var _kanbansObj = {}
+      var _setPlacesObj = {}
+      var _sm
+      var _kanbanItem
+      var i
+      var len
+
+      // kanbans Array to obj
+      results.kanbans.forEach(function (item) {
+        _kanbansObj[item.sm] = item
+      })
+
+      // _setPlacesObj
+      results.setPlaces.forEach(function (item) {
+        switch (item.place) {
+          case '深圳机场T3出发厅6号门':
+            _setPlacesObj[item.airCode] = '6'
+            break
+          case '深圳机场T3出发厅2号门':
+            _setPlacesObj[item.airCode] = '2'
+            break
+          case '白云机场出发厅2号门':
+            _setPlacesObj[item.airCode] = '2'
+            break
+          case '白云机场出发厅16号门':
+            _setPlacesObj[item.airCode] = '16'
+            break
+          case '白云机场出发厅13号门':
+            _setPlacesObj[item.airCode] = '13'
+            break
+          case '萧山机场B航站楼出发厅7号门':
+            _setPlacesObj[item.airCode] = '7'
+            break
+          case '萧山机场B航站楼出发厅11号门':
+            _setPlacesObj[item.airCode] = '11'
+            break
+        }
+      });
+
+      // _sm
+      results.sms.forEach(function (item) {
+        _sm = {
+          id: item._id,
+          team: item.team,
+          smType2: item.smType2,
+          operator: item.operator,
+          flight: item.flight,
+          smRealNumber: item.smRealNumber,
+          insurance: item.insurance,
+          smTimeSpace: item.smTimeSpace,
+          smAgencyFund: item.smAgencyFund,
+          phoneMsgStatus: item.phoneMsgStatus.toString(),
+          smPayment: item.smPayment,
+          serverState: this._computeSmStatus(item.smStatus),
+        }
+
+        if (_sm.flight.flightEndCity.indexOf(_CITY) === 0) {
+          _sm.smType1 = 2
+          _sm.start = this._getSetTime(_sm.flight.flightEndTime, _sm.smTimeSpace)
+          _sm.city_html = ''
+          _sm.smSetPlace = '0'
+        } else {
+          _sm.smType1 = 1
+          _sm.start = this._getSetTime(_sm.flight.flightStartTime, _sm.smTimeSpace)
+          _sm.city_html = '<span>' + _sm.flight.flightEndCity.split('(')[0] + '</span><br>'
+          _sm.smSetPlace = _setPlacesObj[_sm.flight.flightNum.substr(0, 2)]
+          if (typeof _sm.smSetPlace === 'undefined') {
+            _sm.smSetPlace = 'n'
+          }
+        }
+
+        if(_sm.smAgencyFund === 0) {
+          _sm.smAgencyFund_html = ''
+        } else {
+          _sm.smAgencyFund_html =
+            '<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">代收' +
+            (_sm.smAgencyFund / -100) + '</span><br>'
+        }
+
+        if(_sm.smPayment === 0) {
+          _sm.smPayment_html = ''
+        } else {
+          _sm.smPayment_html =
+            '<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">代付' +
+            (_sm.smPayment / 100) + '</span><br>'
+        }
+
+        // console.log(item.serverMan);
+        // 有BUG item.serverMan 有 undefined
+        if(item.serverMan) {
+          _sm.serverMan = item.serverMan;
+        } else {
+          _sm.serverMan = '待定'
+        }
+        //sm.serverMan = item.serverMan === '' ? '待定' : item.serverMan
+        _sm.backgroundColor = '#3a87ad'
+        _sm.borderColor  = '#2e6da4'
+
+        if(_kanbansObj[_sm.id]){
+          _kanbanItem = _kanbansObj[_sm.id]
+
+          // if(_kanbanItem.news) {
+          //   for(i = 0, len = _kanbanItem.news.length; i < len; i++) {
+          //     if(kanbanItem.news[i] === stateMap.userObj.name) {
+          //       _sm.isHasNews = true;
+          //       break;
+          //     }
+          //   }
+          // }
+
+          /*if(kanbanItem.serverMan) {
+            _sm.serverMan = kanbanItem.serverMan;
+          }*/
+          if(_kanbanItem.djpState) {
+            _sm.djpState = _kanbanItem.djpState
+          }
+          if(_kanbanItem.smSetPlace) {
+            _sm.smSetPlace = _kanbanItem.smSetPlace
+          }
+          if(_kanbanItem.flightState) {
+            _sm.flightState = _kanbanItem.flightState
+          }
+          if(_kanbanItem.smAgencyFundState) {
+            _sm.smAgencyFundState = _kanbanItem.smAgencyFundState
+          }
+          if(_kanbanItem.smPaymentState) {
+            _sm.smPaymentState = _kanbanItem.smPaymentState
+          }
+          if(_kanbanItem.serverState) {
+            _sm.serverState = _kanbanItem.serverState
+          }
+          if(_kanbanItem.djpNote) {
+            _sm.djpNote = _kanbanItem.djpNote
+          }
+          if(_kanbanItem.serverNote) {
+            _sm.serverNote = _kanbanItem.serverNote
+          }
+          if(_kanbanItem.flight_gai) {
+            //_sm.flight     = _kanbanItem.flight_old
+            _sm.flight_gai = _kanbanItem.flight_gai
+            //_sm.start = _kanbanItem.flight_gai.start
+
+            /*if(_sm.smType1 === 2) {
+              _sm.start = getSetTime(_sm.flight_gai.flightDate, _sm.flight_gai.flightEndTime, _sm.smTimeSpace)
+            }*/
+
+            /*if(_kanbanItem.flight_gai.flightDate !== stateMap.thisDate) {
+              _sm.backgroundColor = '#FF8000'
+            }*/
+          }
+          if(_kanbanItem.historys) {
+            _sm.historys = _kanbanItem.historys
+          }
+          if(_kanbanItem.flyingStatusClass) {
+            _sm.flyingStatusClass = _kanbanItem.flyingStatusClass
+          }
+          if(_kanbanItem.wxServerState) {
+            _sm.wxServerState = _kanbanItem.wxServerState
+          }
+          //console.log(sm)
+        }
+
+        if(_sm.serverState === '完成') {
+          _sm.backgroundColor = '#77B5D3'
+        }
+
+        _events.push(_sm)
+      }.bind(this))
+
+      return {
+        events: _events
+      }
+    }
+
+    ref() {
+      jQuery(this._container).fullCalendar('refetchEvents')
     }
   }
   // 在浏览器中注册这个新的元素

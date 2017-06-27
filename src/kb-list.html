@@ -1,21 +1,53 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+
+<link rel="import" href="kb-icons.html">
 <link rel="import" href="kb-fullcalendar-style.html">
 <link rel="import" href="kb-fullcalendar.html">
 
 <dom-module id="kb-list">
   <template>
-    <style include="kb-fullcalendar-style"> 
+    <style include="kb-fullcalendar-style">
+      .logout-warp {
+        position: fixed;
+      }
+
+      .auth-name {
+        vertical-align: middle;
+      }
+
+      .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 0;
+        padding: 6px 6px 0 0;
+      }
     </style>
 
-    <kb-fullcalendar></kb-fullcalendar>
+    <div class="logout-warp">
+      <paper-icon-button 
+        icon="logout"
+        on-tap="logout"
+        aria-label="Categories">
+      </paper-icon-button>
+      <span class="auth-name">[[auth.name]]</span>
+    </div>
+
+    <kb-fullcalendar
+      gotoday="[[gotoday]]"
+      setplaces="[[setplaces]]">
+    </kb-fullcalendar>
   </template>
 
   <script>
     // 为一个新的叫做 kb-list 的元素定义类
     class KbList extends Polymer.Element {
       static get is() { return 'kb-list'; }
-      constructor() {
-        super();
+      // constructor() {
+      //   super();
+      // }
+
+      logout() {
+        this.dispatchEvent(new CustomEvent('logout'))
       }
     }
     // 在浏览器中注册这个新的元素

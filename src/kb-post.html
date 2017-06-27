@@ -1,0 +1,55 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+
+<link rel="lazy-import" href="kb-opt.html">
+<link rel="lazy-import" href="kb-insurance.html">
+<link rel="lazy-import" href="kb-note.html">
+<link rel="lazy-import" href="kb-flightpost.html">
+<link rel="lazy-import" href="kb-sms.html">
+
+<dom-module id="kb-post">
+  <template>
+    <style>
+    </style>
+
+    <iron-pages
+        selected="[[selectedpage]]"
+        attr-for-selected="name">
+
+      <kb-opt name="opt"></kb-opt>
+      <kb-insurance name="insurance"></kb-insurance>
+      <kb-note name="note"></kb-note>
+      <kb-flightpost name="flightpost"></kb-flightpost>
+      <kb-sms name="sms"></kb-sms>
+    </iron-pages>
+  </template>
+
+  <script>
+    // 为一个新的叫做 kb-post 的元素定义类
+    class KbPost extends Polymer.Element {
+      static get is() { return 'kb-post'; }
+
+      static get properties() {
+        return {
+          selectedpage: {
+            type: String,
+            value: 'opt',
+            observer: '_selectedpageChanged',
+          },
+        };
+      }
+
+      _selectedpageChanged(newValue) {
+        const resolvedPageUrl = this.resolveUrl('kb-' + newValue + '.html');
+        Polymer.importHref(
+          resolvedPageUrl,
+          null,
+          null,
+          true);
+      }
+    }
+    // 在浏览器中注册这个新的元素
+    window.customElements.define(KbPost.is, KbPost);
+  </script>
+</dom-module>
